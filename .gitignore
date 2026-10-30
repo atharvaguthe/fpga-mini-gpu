@@ -1,0 +1,22 @@
+
+
+# Stimulation executable
+
+sim/*sim
+sim/*_experiments
+
+#Waveform files
+*.vcd
+*.fst 
+
+#Compiled outputs
+*.out 
+*.o 
+
+# Temporary files
+*.tmp 
+*.swp
+*~
+
+# Editor config
+.cache/
