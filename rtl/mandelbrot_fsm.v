@@ -10,7 +10,8 @@ module mandelbrot_fsm (
 
     output reg initialize,
     output reg update,
-    output reg done
+    output reg done,
+    output reg count_enable
 );
 
 localparam IDLE = 3'd0;
@@ -72,11 +73,15 @@ always @(*) begin
       initialize = 0;
       update = 0;
       done = 0;
+      count_enable = 0;
 
       case (state)
 
           INIT:
               initialize = 1;
+
+          CALC:
+              count_enable = 1;
 
           UPDATE:
               update = 1;
@@ -88,6 +93,7 @@ always @(*) begin
               initialize = 0;
               update = 0;
               done = 0;
+              count_enable = 0;
           
           end
       endcase
