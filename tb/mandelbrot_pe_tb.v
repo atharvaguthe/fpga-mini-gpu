@@ -97,6 +97,9 @@ endtask
 
 initial begin 
 
+        $dumpfile("sim/mandelbrot_pe.vcd");
+        $dumpvars(0,mandelbrot_pe_tb);
+
         clk = 0;
         rst = 0;
         start = 0;
