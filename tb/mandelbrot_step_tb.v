@@ -4,8 +4,8 @@
 
 module mandelbrot_step_tb;
 
-reg signed [15:0] x;
-reg signed [15:0] y;
+reg signed [20:0] x;
+reg signed [20:0] y;
 
 reg signed [15:0] a;
 reg signed [15:0] b;

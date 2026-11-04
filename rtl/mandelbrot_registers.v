@@ -3,6 +3,7 @@ module mandelbrot_registers (
         input wire clk,
         input wire rst,
         input wire load,
+        input wire initialize,
 
         input wire signed [20:0] x_next,
         input wire signed [20:0] y_next,
@@ -13,7 +14,7 @@ module mandelbrot_registers (
 );
 
 always @(posedge clk) begin 
-        if (rst) begin
+        if (rst || initialize) begin
             x_reg <= 21'sd0;   
             y_reg <= 21'sd0;   
         end
