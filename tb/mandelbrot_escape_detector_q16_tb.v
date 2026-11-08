@@ -35,7 +35,7 @@ task check_escape;
           #10;
 
           if(escaped === expected)
-            $display("Pass: x=%0d y=%0d escaped=%0",x,y,escaped);
+            $display("Pass: x=%0d y=%0d escaped=%b",x,y,escaped);
           else 
             $fatal(1,"fail: x=%0d y=%0d expected=%b actual=%b",x, y, expected,escaped);
 
