@@ -101,6 +101,47 @@ task read_and_check;
 
 endtask
 
+task write_pair;
+
+  input [8:0] x0;
+  input [8:0] x1;
+
+  begin
+    @(negedge clk);
+$display(
+    "DEBUG: read_ptr=%0d write_ptr=%0d count=%0d out_x=%0d",
+    dut.read_ptr,
+    dut.write_ptr,
+    count,
+    out_x
+);
+    in_valid0 = 1;
+    in_valid1 = 1;
+
+    in_x0 = x0;
+    in_y0 = 0;
+    in_iterations0 = x0;
+    in_escaped0 = 0;
+
+    in_x1 = x1;
+    in_y1 = 0;
+    in_iterations1 = x1;
+    in_escaped1 = 0;
+
+    @(negedge clk);
+$display(
+    "WRITE DEBUG: write_ptr=%0d read_ptr=%0d count=%0d",
+    dut.write_ptr,
+    dut.read_ptr,
+    count
+);
+    in_valid0 = 0;
+    in_valid1 = 0;
+  end
+
+endtask
+
+
 initial begin 
 
   $dumpfile("sim/result_fifo.vcd");
@@ -153,6 +194,52 @@ initial begin
 
   if(count != 0)
     $fatal(1,"fifo should be empty");
+
+  //test 1 : fill the fifo completely.
+  write_pair(10,11);
+  write_pair(12,13);
+
+  if(count != 4)
+    $fatal(1,"fifo should be full. count=%0d",count);
+
+  if (in_ready0 !== 0 || in_ready1 !== 0)
+    $fatal(1, "fifo should not accept inputs when full");
+
+  $display("Pass : fifo full condition verified");
+
+  //test 2 : simultanuous read and write when full
+  @(negedge clk);
+
+  out_ready = 1;
+
+  in_valid0 = 1;
+  in_x0 = 14;
+  in_y0 = 0;
+  in_iterations0 = 14;
+  in_escaped0 = 1;
+
+  in_valid1 = 0;
+
+  @(negedge clk);
+
+  out_ready = 0;
+  in_valid0 = 0;
+
+  if (count != 4)
+    $fatal(1,"count should remain 4 after simultaneous read/write");
+
+  $display("Pass : simultanuous read and write verified");
+
+  // test 3 : verify fifo ordering and wraparound
+  read_and_check(11,0,11,0);
+  read_and_check(12,0,12,0);
+  read_and_check(13,0,13,0);
+  read_and_check(14,0,14,1);
+
+  if(count != 0)
+    $fatal(1,"fifo should be empty after draining");
+
+  $display("Pass: Pointer wraparound verified");
 
   $display("===========================");
   $display("Pass");
