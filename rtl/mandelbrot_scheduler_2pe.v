@@ -15,6 +15,9 @@ module mandelbrot_scheduler_2pe (
   input wire signed [15:0] a,
   input wire signed [15:0] b,
 
+  input wire pe_available0,
+  input wire pe_available1,
+
   input wire [15:0] max_iter,
 
   output wire result_valid0,
@@ -63,11 +66,11 @@ always @(*) begin
 
     if(next_pe == 0) begin
 
-      if(!busy0)
+      if(!busy0 && pe_available0)
 
         start0 = 1;
 
-      else if (!busy1)
+      else if (!busy1 && pe_available1)
 
         start1 = 1;
 
@@ -75,11 +78,11 @@ always @(*) begin
 
     else begin
 
-      if(!busy1)
+      if(!busy1 && pe_available1)
 
         start1 = 1;
 
-      else if(!busy0)
+      else if(!busy0 && pe_available0)
         start1 = 1;
 
     end
@@ -87,7 +90,7 @@ always @(*) begin
   end
 end
 
-assign pixel_ready = !busy0 || !busy1;
+assign pixel_ready = ((!busy0 && pe_available0) || (!busy1 && pe_available1));
 
 mandelbrot_pe_pair pe_pair(
 

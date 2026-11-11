@@ -17,6 +17,9 @@ reg signed [15:0] b;
 
 reg [15:0] max_iter;
 
+reg pe_available0;
+reg pe_available1;
+
 wire result_valid0;
 wire [8:0] result_x0;
 wire [7:0] result_y0;
@@ -44,6 +47,9 @@ mandelbrot_scheduler_2pe dut (
   .b(b),
 
   .max_iter(max_iter),
+
+  .pe_available0(pe_available0),
+  .pe_available1(pe_available1),
 
   .result_valid0(result_valid0),
   .result_x0(result_x0),
@@ -133,11 +139,37 @@ initial begin
   a = 0;
   b = 0;
 
+  pe_available0 = 1;
+  pe_available1 = 1;
+
   max_iter = 5;
   result_count = 0;
 
   repeat (2) @(negedge clk);
   rst = 0;
+
+  // test : neither pe is pe_available 
+  @(negedge clk);
+
+  pixel_valid = 1;
+  pe_available0 = 0;
+  pe_available1 = 0;
+
+  #1;
+
+  if(pixel_ready !== 0)
+    $fatal(1, "Scheduler should stall when both PEs are unavailable");
+
+  if(dut.start0 !== 0 || dut.start1 !== 0)
+    $fatal(1, "Scheduler dispatched a pixel despite backpressure");
+
+  $display("Pass : Scheduler stall when both PEs are unavailabe");
+
+  @(negedge clk);
+
+  pixel_valid = 0;
+  pe_available0 = 1;
+  pe_available1 = 1;
 
   send_pixel(0,0,16'sd12288, 16'sd0);
 

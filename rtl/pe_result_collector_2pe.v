@@ -20,6 +20,9 @@ module pe_result_collector_2pe #(
       input wire [15:0] pe_iterations1,
       input wire pe_escaped1,
 
+      input wire pe_available0,
+      input wire pe_available1,
+
       output wire result_valid,
       input wire result_ready,
 
@@ -84,6 +87,10 @@ pe_result_hold hold1 (
       .out_iterations(hold_iterations1),
       .out_escaped(hold_escaped1)
 );
+
+
+assign pe_available0 = !hold_valid0 || fifo_ready0;
+assign pe_available1 = !hold_valid1 || fifo_ready1;
 
 result_fifo_2pe #(
       .DEPTH(FIFO_DEPTH)
