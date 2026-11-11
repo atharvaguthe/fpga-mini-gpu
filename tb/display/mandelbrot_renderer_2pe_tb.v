@@ -29,6 +29,8 @@ integer pixel_index;
 
 reg [11:0] seen;
 
+reg measuring;
+
 mandelbrot_renderer_2pe #(
       .IMAGE_WIDTH(4),
       .IMAGE_HEIGHT(3),
@@ -52,6 +54,13 @@ mandelbrot_renderer_2pe #(
 );
 
 always #5 clk = ~clk;
+
+always @(posedge clk) begin
+    if (rst)
+        cycles = 0;
+    else if (measuring)
+        cycles = cycles + 1;
+end
 
 always @(posedge clk) begin
 
@@ -101,6 +110,7 @@ initial begin
       result_ready = 1;
 
       received = 0;
+      measuring = 0;
       cycles = 0;
       seen = 0;
       pixel_index = 0;
@@ -109,15 +119,16 @@ initial begin
       rst = 0;
 
       @(negedge clk);
+      measuring = 1;
       start = 1;
 
       @(negedge clk);
       start = 0;
 
-      wait (received == 12);
+      wait (received == 12 && generation_done && fifo_count == 0);
 
       @(negedge clk);
-
+      measuring = 0;
       if (!generation_done)
         $fatal(1,"Coordinate generation did not finish");
 

@@ -23,6 +23,8 @@ integer pixel_index;
 
 reg [11:0] seen;
 
+reg measuring;
+
 mandelbrot_renderer #(
       .IMAGE_WIDTH(4),
       .IMAGE_HEIGHT(3)
@@ -43,6 +45,16 @@ mandelbrot_renderer #(
 
 always #5 clk = ~clk;
 
+always @(posedge clk) begin
+
+    if (rst)
+        cycles = 0;
+
+    else if (measuring)
+        cycles = cycles + 1;
+
+end
+
 initial begin
         
         $dumpfile("sim/single_pe_small.vcd");
@@ -58,10 +70,13 @@ initial begin
         cycles = 0;
         seen = 0;
 
+        measuring = 0;
+
         repeat (2) @(negedge clk);
         rst = 0;
 
         @(negedge clk);
+        measuring = 1;
         start = 1;
 
         @(negedge clk);
@@ -96,6 +111,9 @@ initial begin
       end 
 
     end
+
+    @(negedge clk);
+    measuring = 0;
 
     if (count != 12)
       $fatal(1, "single pe renderer timeout");
