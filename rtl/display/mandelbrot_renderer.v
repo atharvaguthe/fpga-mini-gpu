@@ -1,7 +1,11 @@
 
 `timescale 1ns/1ps
 
-module mandelbrot_renderer (
+module mandelbrot_renderer #(
+      parameter IMAGE_WIDTH = 320,
+      parameter IMAGE_HEIGHT = 240
+
+)(
       input wire clk,
       input wire rst,
       input wire start,
@@ -40,7 +44,10 @@ wire signed [15:0] b;
 wire pixel_valid;
 wire generator_done;
 
-pixel_coordinate_generator coordinate_generator (
+pixel_coordinate_generator #(
+        .IMAGE_WIDTH(IMAGE_WIDTH),
+        .IMAGE_HEIGHT(IMAGE_HEIGHT)
+) coordinate_generator (
         .clk(clk),
         .rst(rst),
         .start(generator_start),
