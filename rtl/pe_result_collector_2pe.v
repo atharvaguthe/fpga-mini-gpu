@@ -20,8 +20,8 @@ module pe_result_collector_2pe #(
       input wire [15:0] pe_iterations1,
       input wire pe_escaped1,
 
-      input wire pe_available0,
-      input wire pe_available1,
+      output wire pe_available0,
+      output wire pe_available1,
 
       output wire result_valid,
       input wire result_ready,
