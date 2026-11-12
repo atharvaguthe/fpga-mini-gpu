@@ -1,10 +1,14 @@
 
-
+import numpy as np 
+import matplotlib.pyplot as plt
 import csv 
 
 WIDTH = 320
 HEIGHT = 240
-MAX_ITER = 64
+MAX_ITER = 16
+
+iteration_error_map = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
+escape_error_map = np.zeros((HEIGHT, WIDTH), dtype=np.uint8)
 
 
 def mandelbrot_float(a, b):
@@ -37,7 +41,7 @@ def mandelbrot_float(a, b):
 
 hardware = {}
 
-with open("sim/mandelbrot_pixels.csv", "r") as file:
+with open("sim/mandelbrot_2pe.csv", "r") as file:
 
     reader = csv.DictReader(file)
 
@@ -87,10 +91,12 @@ for py in range(HEIGHT):
 
         if float_iterations != fixed_iterations:
             iterations_mismatches += 1
+            iteration_error_map[py,px] = 1
 
 
         if float_escaped != fixed_escaped:
             escape_mismatches += 1
+            escape_error_map[py, px] = 1
             print(f"Excape misatch at({px},{py}):"
                   f"fixed={fixed_escaped}"
                   f"float={float_escaped}"
@@ -139,3 +145,24 @@ else:
 
     print("No difference")
 print("=============================================")
+
+
+# Visualise numerical mismatches
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+axes[0].imshow(iteration_error_map, cmap="hot", origin="upper")
+axes[0].set_title("Q12 Iteration Mismatches")
+axes[0].set_xlabel("X coordinate")
+axes[0].set_ylabel("Y coordinate")
+
+axes[1].imshow(escape_error_map, cmap="hot", origin="upper")
+axes[1].set_title("Q12 Escape Classification Mismatches")
+axes[1].set_xlabel("X coordinate")
+axes[1].set_ylabel("Y coordinate")
+
+plt.tight_layout()
+plt.savefig("sim/q12_precision_errors.png", dpi=200)
+plt.show()
+
+print("Saved: sim/q12_precision_errors.png")
