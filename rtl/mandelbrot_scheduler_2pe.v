@@ -83,14 +83,14 @@ always @(*) begin
         start1 = 1;
 
       else if(!busy0 && pe_available0)
-        start1 = 1;
+        start0 = 1;
 
     end
 
   end
 end
 
-assign pixel_ready = ((!busy0 && pe_available0) || (!busy1 && pe_available1));
+assign pixel_ready = start0 || start1; 
 
 mandelbrot_pe_pair pe_pair(
 

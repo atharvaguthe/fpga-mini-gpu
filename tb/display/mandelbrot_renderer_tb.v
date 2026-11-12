@@ -1,5 +1,4 @@
 
-
 `timescale 1ns/1ps
 
 module mandelbrot_renderer_tb;
@@ -16,59 +15,63 @@ wire [15:0] result_iterations;
 wire result_escaped;
 wire result_valid;
 wire frame_done;
+
 integer expected_x;
 integer expected_y;
-
-
-mandelbrot_renderer uut(
-        
-        .clk(clk),
-        .rst(rst),
-        .start(start),
-
-        .max_iter(max_iter),
-
-        .result_x(result_x),
-        .result_y(result_y),
-        .result_iterations(result_iterations),
-        .result_escaped(result_escaped),
-        .result_valid(result_valid),
-
-        .frame_done(frame_done)
-);
-
-always #5 clk = ~clk;
 
 integer count;
 integer cycles;
 
+reg [76799:0] seen;
+
+mandelbrot_renderer uut (
+    .clk(clk),
+    .rst(rst),
+    .start(start),
+
+    .max_iter(max_iter),
+
+    .result_x(result_x),
+    .result_y(result_y),
+    .result_iterations(result_iterations),
+    .result_escaped(result_escaped),
+    .result_valid(result_valid),
+
+    .frame_done(frame_done)
+);
+
+always #5 clk = ~clk;
+
 initial begin
 
-      $dumpfile("sim/mandelbrot_renderer.vcd");
-      $dumpvars(0,mandelbrot_renderer_tb);
+    clk = 0;
+    rst = 1;
+    start = 0;
+    max_iter = 16;
 
-      clk = 0;
-       rst = 1;
-       start = 0;
-       max_iter = 16'd1;
+    count = 0;
+    cycles = 0;
+    seen = 0;
 
-       count = 0;
-       cycles = 0;
+    $display("================================");
+    $display("SINGLE PE RENDERER STARTED");
+    $display("Resolution: 320 x 240");
+    $display("Maximum iterations: %0d", max_iter);
+    $display("================================");
 
+    repeat (2) @(negedge clk);
+    rst = 0;
 
-       $display("mandelbrot rendrer test");
+    @(negedge clk);
+    start = 1;
 
-       repeat (2) @(posedge clk);
+    @(negedge clk);
+    start = 0;
 
-       @(negedge clk);
-       rst = 0;
-
-       start = 1;
-
-       @(negedge clk);
-       start = 0;
-
-       while (count < 322 && cycles < 100000) begin
+    // Measure from the first clock after start
+    // until all results and frame completion.
+    while ((count < 76800 || !frame_done) &&
+           cycles < 10000000) begin
 
         @(posedge clk);
         #1;
@@ -77,33 +80,59 @@ initial begin
 
         if (result_valid) begin
 
-          $display("Pixel %0d | x = %0d | y = %0d | iterations = %0d | escaped %0d", count, result_x, result_y, result_iterations, result_escaped);
+            if (result_x >= 320 || result_y >= 240)
+                $fatal(1, "Invalid pixel coordinate");
 
-          expected_x = count % 320;
-          expected_y = count / 320;
+            expected_x = count % 320;
+            expected_y = count / 320;
 
-          if (result_x == expected_x && result_y == expected_y && result_iterations == 1) begin
-            $display("pass: pixel %0d", count);
-          end 
+            if (result_x !== expected_x ||
+                result_y !== expected_y)
+                $fatal(1,
+                    "Pixel order error: expected (%0d,%0d), got (%0d,%0d)",
+                    expected_x, expected_y, result_x, result_y);
 
-          else begin
-            $display("fail: pixe %0d", count);
-          end
+            if (seen[result_y * 320 + result_x])
+                $fatal(1, "Duplicate pixel");
 
-          count = count + 1;
+            seen[result_y * 320 + result_x] = 1'b1;
+
+            count = count + 1;
+
+            if (count % 5000 == 0)
+                $display(
+                    "Progress: %0d / 76800 | %0.1f%%",
+                    count, (count * 100.0) / 76800
+                );
+
         end
 
-      end
+    end
 
-      if (count == 322)
-        $display("success: row transition varified");
-      else
-        $display("fail: timeout");
+    if (count != 76800)
+        $fatal(1, "Incorrect pixel count: %0d", count);
 
-      $display("==================");
+    if (!frame_done)
+        $fatal(1, "Frame generation did not finish");
 
-      $finish;
+    if (seen !== {76800{1'b1}})
+        $fatal(1, "Missing pixels detected");
 
+    $display("================================");
+    $display("PASS: Single PE full resolution");
+    $display("Total pixels: %0d", count);
+    $display("Clock cycles: %0d", cycles);
+    $display("Throughput: %f pixels/cycle",
+             76800.0 / cycles);
+    $display("================================");
+
+    $finish;
+
+end
+
+initial begin
+    #1000000000;
+    $fatal(1, "TIMEOUT");
 end
 
 endmodule
