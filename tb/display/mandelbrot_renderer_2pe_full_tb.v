@@ -26,6 +26,7 @@ integer received;
 integer cycles;
 integer pixel_index;
 integer i;
+integer csv_file;
 
 reg [76799:0] seen;
 reg measuring;
@@ -76,6 +77,8 @@ always @(posedge clk) begin
     seen[pixel_index] = 1'b1;
     received =received + 1;
 
+    $fdisplay(csv_file, "%0d,%0d, %0d, %0d",result_x, result_y, result_iterations, result_escaped);
+
     if (received % 5000 == 0) begin
       $display("Progress: %0d/ 76800 | %0.1f%% complete",received,(received * 100.0) /76800);
     end 
@@ -99,6 +102,15 @@ initial begin
   measuring = 0;
   pixel_index = 0;
   seen = 0;
+
+  csv_file = $fopen("sim/mandelbrot_2pe.csv", "w");
+
+  if(csv_file == 0)
+    $fatal(1,"could not open csv output file");
+
+  $fdisplay(csv_file, "x,y,iterations,escaped");
+
+  $display("csv output opened");
 
   repeat (2) @(negedge clk);
   rst = 0;
@@ -133,6 +145,10 @@ initial begin
   $display("total clock cycles: %0d",cycles);
   $display("througput: %f pixels/cycles",76800.0/cycles);
   $display("=================================");
+
+  $fclose(csv_file);
+
+  $display("csv saved");
 
   $finish;
 

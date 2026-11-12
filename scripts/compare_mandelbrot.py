@@ -3,7 +3,7 @@ import csv
 
 WIDTH = 320
 HEIGHT = 240
-MAX_ITER = 64
+MAX_ITER = 16
 
 def signed_wrap(value, bits):
 
@@ -50,7 +50,7 @@ def mandelbrot_fixed(a,b):
 
 hardware = {}
 
-with open("sim/mandelbrot_pixels.csv", "r") as file:
+with open("sim/mandelbrot_2pe.csv", "r") as file:
     reader = csv.DictReader(file)
 
     for row in reader:
@@ -109,13 +109,22 @@ for py in range(HEIGHT):
                 print(f"escape mismatch at ({px},{py}):"
                       f"Python={expected_escaped},"
                       f"Verilog={actual_escaped}")
-
 print("-------------------------------")
 
-print("total pixel checked:",total_pixels)
+print("Total pixels checked:", total_pixels)
+print("Hardware pixels loaded:", len(hardware))
 print("Missing pixels:", missing_pixels)
-print("iterations mismatch:", interation_errors)
-print("escape mismatch:", escape_errors)
+print("Iteration mismatches:", interation_errors)
+print("Escape mismatches:", escape_errors)
+
+if total_pixels > 0:
+    exact_matches = total_pixels - missing_pixels - max(
+        interation_errors, escape_errors
+    )
+
+    print("Exact match percentage:",
+          (total_pixels - interation_errors) * 100.0 / total_pixels,
+          "%")
 
 if (
     total_pixels == WIDTH * HEIGHT
@@ -124,9 +133,8 @@ if (
     and interation_errors == 0
     and escape_errors == 0
 ):
-    print("success : exact match")
-
+    print("SUCCESS: Exact match")
 else:
-    print("failed")
+    print("FAILED: Differences detected")
 
 print("-------------------------------")
