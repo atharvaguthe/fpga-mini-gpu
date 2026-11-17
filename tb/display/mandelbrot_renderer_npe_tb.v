@@ -4,11 +4,11 @@
 
 module mandelbrot_renderer_npe_tb;
 
-localparam IMAGE_WIDTH = 32;
-localparam IMAGE_HEIGHT = 24;
-localparam NUM_PE = 4;
-localparam FIFO_DEPTH = 32;
-localparam MAX_ITER = 64;
+parameter IMAGE_WIDTH = 32;
+parameter IMAGE_HEIGHT = 24;
+parameter NUM_PE = 4;
+parameter FIFO_DEPTH = 32;
+parameter MAX_ITER = 64;
 localparam TOTAL_PIXELS = IMAGE_WIDTH * IMAGE_HEIGHT;
 localparam FIFO_COUNT_W = $clog2(FIFO_DEPTH + 1);
 
@@ -30,6 +30,7 @@ wire frame_done;
 
 wire [FIFO_COUNT_W-1:0] fifo_count;
 reg [TOTAL_PIXELS-1:0] seen;
+reg [31:0] lfsr;
 
 integer result_count;
 integer cycle_count;
@@ -64,12 +65,17 @@ mandelbrot_renderer_npe #(
 always #5 clk = ~clk;
 
 always @(negedge clk) begin 
-  if (rst)
+  if (rst) begin
     result_ready = 0;
-
-  else 
-    result_ready = ((cycle_count % 7) != 0) && ((cycle_count % 11) != 0);
-
+    lfsr <= 32'hACE1_1234;
+  end 
+  else begin
+    lfsr <= {lfsr[30:0],lfsr[31] ^ lfsr[21] ^ lfsr[1] ^ lfsr[0]};
+    if (cycle_count < 150)
+      result_ready <= 0;
+    else 
+      result_ready <= lfsr[0] | lfsr[3] | lfsr[5];
+  end 
 end 
 
 always @(posedge clk) begin 
@@ -81,7 +87,16 @@ always @(posedge clk) begin
   else begin 
     cycle_count = cycle_count + 1;
     if (result_valid && result_ready) begin
+      if ((result_escaped !== 1'b0) &&
+        (result_escaped !== 1'b1)) begin
+        $fatal(1, "Unknown escape flag at (%0d,%0d)",
+          result_x, result_y);
+      end
 
+      if ((^result_iterations) === 1'bx) begin
+        $fatal(1, "Unknown iteration count at (%0d,%0d)",
+          result_x, result_y);
+      end
       if (result_x >= IMAGE_WIDTH || result_y >= IMAGE_HEIGHT)
         $fatal(1, "invalid coordinate: (%0d,%0d)",result_x, result_y);
 
@@ -185,7 +200,7 @@ end
 
 initial begin
 
-  #1000000;
+  #10000000;
 
   $fatal(1, "Simulation timeout");
 

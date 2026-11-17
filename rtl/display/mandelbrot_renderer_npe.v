@@ -98,7 +98,7 @@ mandelbrot_scheduler_npe #(
 
   .start(pe_start),
   .a_bus(pe_a_bus),
-  .b_bus(pe_a_bus),
+  .b_bus(pe_b_bus),
 
   .pe_done(pe_done_bus),
   .iterations_bus(pe_iterations_bus),
