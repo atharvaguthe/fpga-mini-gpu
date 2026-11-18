@@ -70,7 +70,7 @@ always @(posedge clk) begin
       if (write_valid[seq_i] && write_ready[seq_i]) begin
 
         seq_write_index = write_ptr + seq_accepted;
-        while (seq_write_index >= DEPTH)
+        if (seq_write_index >= DEPTH)
           seq_write_index = seq_write_index - DEPTH;
 
         memory[seq_write_index] <= write_data_bus[seq_i*49 +: 49];
@@ -81,7 +81,7 @@ always @(posedge clk) begin
 
     seq_write_index = write_ptr + seq_accepted;
 
-    while(seq_write_index >= DEPTH)
+    if(seq_write_index >= DEPTH)
       seq_write_index = seq_write_index - DEPTH;
 
     write_ptr <= seq_write_index;

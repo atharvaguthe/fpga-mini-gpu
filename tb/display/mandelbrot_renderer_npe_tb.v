@@ -4,11 +4,11 @@
 
 module mandelbrot_renderer_npe_tb;
 
-parameter IMAGE_WIDTH = 32;
-parameter IMAGE_HEIGHT = 24;
-parameter NUM_PE = 4;
-parameter FIFO_DEPTH = 32;
-parameter MAX_ITER = 64;
+parameter IMAGE_WIDTH = 320;
+parameter IMAGE_HEIGHT = 240;
+parameter NUM_PE = 8;
+parameter FIFO_DEPTH = 4;
+parameter MAX_ITER = 256;
 localparam TOTAL_PIXELS = IMAGE_WIDTH * IMAGE_HEIGHT;
 localparam FIFO_COUNT_W = $clog2(FIFO_DEPTH + 1);
 
@@ -36,6 +36,11 @@ integer result_count;
 integer cycle_count;
 integer result_index;
 integer i;
+integer csv_fd;
+string csv_filename;
+integer frame_start_cycle;
+integer frame_end_cycle;
+integer frame_cycles;
 
 mandelbrot_renderer_npe #(
   .IMAGE_WIDTH(IMAGE_WIDTH),
@@ -97,6 +102,7 @@ always @(posedge clk) begin
         $fatal(1, "Unknown iteration count at (%0d,%0d)",
           result_x, result_y);
       end
+      $fdisplay(csv_fd, "%0d,%0d,%0d,%0d", result_x,result_y,result_iterations,result_escaped);
       if (result_x >= IMAGE_WIDTH || result_y >= IMAGE_HEIGHT)
         $fatal(1, "invalid coordinate: (%0d,%0d)",result_x, result_y);
 
@@ -129,6 +135,17 @@ initial begin
   result_count = 0;
   cycle_count = 0;
   result_index = 0;
+  frame_start_cycle = 0;
+  frame_end_cycle = 0;
+  frame_cycles = 0;
+
+  csv_filename = $sformatf("sim/rtl_results_%0dpe.csv",NUM_PE);
+  csv_fd = $fopen(csv_filename, "w");
+
+  if (csv_fd == 0)
+    $fatal(1,"Could not open RTL results CSV");
+
+  $fdisplay(csv_fd,"x,y,iterations,escaped");
 
   $display("===================================");
   $display("N-pe mandelbrot renderer test");
@@ -148,22 +165,38 @@ initial begin
   @(negedge clk);
   start = 0;
 
-  $display("\nFrame started");
+  frame_start_cycle = cycle_count;
+  $display("\nFrame started", frame_start_cycle);
 
   fork 
 
     begin 
       wait(frame_done === 1'b1);
+      @(negedge clk);
+      frame_end_cycle = cycle_count;
     end 
 
     begin 
-      #1000000;
+      #(128'd50000000000000);
       $fatal(1,"timeout: results=%0d, generation_done=%0d, fifo=%0d",result_count,generation_done,fifo_count);
     end 
 
   join_any 
 
   disable fork;
+
+  frame_cycles = frame_end_cycle - frame_start_cycle;
+
+  $display("");
+  $display("========== PERFORMANCE ==========");
+  $display("PE count          : %0d", NUM_PE);
+  $display("Total clock cycles: %0d", frame_cycles);
+  $display("Clock period      : 10 ns");
+  $display("Frame time        : %0.3f us",
+    frame_cycles * 0.01);
+  $display("Cycles per pixel  : %0.3f",
+    frame_cycles * 1.0 / TOTAL_PIXELS);
+  $display("=================================");
 
   #1;
   if(result_count != TOTAL_PIXELS)
@@ -192,17 +225,9 @@ initial begin
   $display("Frame completion: PASS");
   $display("========================================");
 
+  $fclose(csv_fd);
+
   $finish;
-
-end
-
-// Global simulation timeout
-
-initial begin
-
-  #10000000;
-
-  $fatal(1, "Simulation timeout");
 
 end
 
